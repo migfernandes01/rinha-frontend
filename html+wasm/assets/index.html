@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON Display using WebAssembly</title>
+    <style>
+        body {
+            font-family: monospace;
+        }
+
+        .hide {
+            display: none;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 10px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="prompt" class="container">
+        <h1>JSON Tree Viewer</h1>
+        <p>Simple JSON Viewer that runs completely on the client. No data exchange.</p>
+        <input type="file" id="fileInput" />
+        <button onclick="handleFile()">Display JSON</button>
+        <div id="loader"></div>
+    </div>
+    
+    <p id="thebody"></p>
+    <button id="back" class="hide" onclick="handleBack()">Back</button>
+    <h2 id="fileName"></h2>
+    <pre id="parsedData"></pre>
+
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
+            go.run(result.instance);
+        });
+
+        const loader = document.getElementById('loader');
+        const backBtn = document.getElementById('back');
+        const promptContainer = document.getElementById('prompt');
+        const dataContainer = document.getElementById('parsedData');
+
+        function handleFile() {
+            // show loader
+            loader.classList.add('loader');
+
+            const file = document.getElementById('fileInput').files[0];
+
+            // set file name
+            document.getElementById('fileName').innerText = file.name;
+
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const contents = e.target.result;
+                prettifyJSON(contents);
+            };
+            reader.readAsText(file);
+        }
+
+        function displayJSON(data) {
+            // hide loader
+            loader.classList.remove('loader');
+
+            // hide prompt container
+            promptContainer.classList.remove('container');
+            promptContainer.classList.add('hide');
+
+            // show back button
+            backBtn.classList.remove('hide');
+
+            // display data
+            dataContainer.innerText = data;
+
+            // clear input field
+            document.getElementById('fileInput').value = '';
+        }
+
+        function handleBack() {
+            // hide back button
+            backBtn.classList.add('hide');
+
+            // show prompt container
+            promptContainer.classList.remove('hide');
+            promptContainer.classList.add('container');
+
+            // clear data
+            dataContainer.innerText = '';
+        }
+    </script>
+</body>
+</html>
